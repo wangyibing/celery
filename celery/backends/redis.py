@@ -50,16 +50,23 @@ error = logger.error
 
 
 class ResultConsumer(async.BaseResultConsumer):
+    """
+    消费结果
+    """
 
     _pubsub = None
 
     def __init__(self, *args, **kwargs):
         super(ResultConsumer, self).__init__(*args, **kwargs)
+        # 获得任务的id?
         self._get_key_for_task = self.backend.get_key_for_task
+        # 解码结果
         self._decode_result = self.backend.decode_result
+        # 记录订阅的频道
         self.subscribed_to = set()
 
     def start(self, initial_task_id):
+        # 订阅
         self._pubsub = self.backend.client.pubsub(
             ignore_subscribe_messages=True,
         )
@@ -115,6 +122,7 @@ class RedisBackend(base.BaseKeyValueStoreBackend, async.AsyncBackendMixin):
                  max_connections=None, url=None,
                  connection_pool=None, **kwargs):
         super(RedisBackend, self).__init__(expires_type=int, **kwargs)
+        # 是一个字典
         _get = self.app.conf.get
         if self.redis is None:
             raise ImproperlyConfigured(REDIS_MISSING)
@@ -148,6 +156,7 @@ class RedisBackend(base.BaseKeyValueStoreBackend, async.AsyncBackendMixin):
         self.result_consumer = self.ResultConsumer(
             self, self.app, self.accept, self._pending_results)
 
+    # 从配置的backend-url中解析出相关参数
     def _params_from_url(self, url, defaults):
         scheme, host, port, user, password, path, query = _parse_url(url)
         connparams = dict(
@@ -294,6 +303,7 @@ class RedisBackend(base.BaseKeyValueStoreBackend, async.AsyncBackendMixin):
                 ChordError('Join error: {0!r}'.format(exc)),
             )
 
+    # 成为backend-url指定的redis服务器的客户端
     def _create_client(self, socket_timeout=None, socket_connect_timeout=None,
                        **params):
         return self.redis.StrictRedis(
